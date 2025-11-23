@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getPool, initDatabase } from '@/lib/db';
 import { CreateLinkRequest } from '@/lib/types';
 
-// Initialize database on first request
 let dbInitialized = false;
 
 async function ensureDbInitialized() {
@@ -12,7 +11,6 @@ async function ensureDbInitialized() {
   }
 }
 
-// Generate random code
 function generateCode(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let code = '';
@@ -23,13 +21,19 @@ function generateCode(): string {
   return code;
 }
 
-// Validate code format
 function isValidCode(code: string): boolean {
   return /^[A-Za-z0-9]{6,8}$/.test(code);
 }
 
-// Validate URL
+function normalizeUrl(url: string): string {
+  return url.trim();
+}
+
 function isValidUrl(url: string): boolean {
+  if (!url || typeof url !== 'string') {
+    return false;
+  }
+  
   try {
     const urlObj = new URL(url);
     return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
@@ -38,7 +42,6 @@ function isValidUrl(url: string): boolean {
   }
 }
 
-// POST /api/links - Create a new link
 export async function POST(request: NextRequest) {
   try {
     await ensureDbInitialized();
@@ -47,7 +50,6 @@ export async function POST(request: NextRequest) {
 
     const { url, code } = body;
 
-    // Validate URL
     if (!url || typeof url !== 'string') {
       return NextResponse.json(
         { success: false, error: 'URL is required' },
@@ -55,16 +57,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!isValidUrl(url)) {
+    const normalizedUrl = normalizeUrl(url);
+
+    if (!isValidUrl(normalizedUrl)) {
       return NextResponse.json(
         { success: false, error: 'Invalid URL format' },
         { status: 400 }
       );
     }
 
-    // Generate or validate code
+    const existingUrl = await pool.query(
+      'SELECT id, code, url, clicks, last_clicked, created_at FROM links WHERE url = $1 AND deleted = FALSE ORDER BY created_at ASC LIMIT 1',
+      [normalizedUrl]
+    );
+
+    if (existingUrl.rows.length > 0) {
+      const link = existingUrl.rows[0];
+      return NextResponse.json({
+        success: true,
+        link: {
+          id: link.id,
+          code: link.code,
+          url: link.url,
+          clicks: link.clicks,
+          lastClicked: link.last_clicked,
+          createdAt: link.created_at,
+        },
+      });
+    }
+
     let finalCode = code;
     if (finalCode) {
+      finalCode = finalCode.trim();
       if (!isValidCode(finalCode)) {
         return NextResponse.json(
           { success: false, error: 'Code must be 6-8 alphanumeric characters' },
@@ -72,7 +96,6 @@ export async function POST(request: NextRequest) {
         );
       }
     } else {
-      // Generate unique code
       let attempts = 0;
       do {
         finalCode = generateCode();
@@ -91,7 +114,6 @@ export async function POST(request: NextRequest) {
       } while (true);
     }
 
-    // Check if code already exists
     const existing = await pool.query(
       'SELECT id FROM links WHERE code = $1 AND deleted = FALSE',
       [finalCode]
@@ -104,12 +126,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Insert new link
     const result = await pool.query(
       `INSERT INTO links (code, url, clicks, last_clicked, created_at, deleted)
        VALUES ($1, $2, 0, NULL, CURRENT_TIMESTAMP, FALSE)
        RETURNING id, code, url, clicks, last_clicked, created_at`,
-      [finalCode, url]
+      [finalCode, normalizedUrl]
     );
 
     const link = result.rows[0];
@@ -133,7 +154,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET /api/links - List all links
 export async function GET() {
   try {
     await ensureDbInitialized();

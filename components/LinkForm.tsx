@@ -13,11 +13,55 @@ export default function LinkForm({ onSuccess }: LinkFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [touched, setTouched] = useState({ url: false, code: false });
+  const [validationErrors, setValidationErrors] = useState({ url: '', code: '' });
+
+  const validateUrl = (urlValue: string): string => {
+    if (!urlValue || !urlValue.trim()) {
+      return 'URL is required';
+    }
+    try {
+      const urlObj = new URL(urlValue.trim());
+      if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
+        return 'URL must start with http:// or https://';
+      }
+    } catch {
+      return 'Please enter a valid URL';
+    }
+    return '';
+  };
+
+  const validateCode = (codeValue: string): string => {
+    if (codeValue && codeValue.length > 0) {
+      if (codeValue.length < 6) {
+        return 'Code must be at least 6 characters';
+      }
+      if (codeValue.length > 8) {
+        return 'Code must be at most 8 characters';
+      }
+      if (!/^[A-Za-z0-9]+$/.test(codeValue)) {
+        return 'Code must contain only letters and numbers';
+      }
+    }
+    return '';
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess(false);
+    
+    // Validate all fields
+    const urlError = validateUrl(url);
+    const codeError = validateCode(code);
+    
+    setValidationErrors({ url: urlError, code: codeError });
+    setTouched({ url: true, code: true });
+    
+    if (urlError || codeError) {
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -27,7 +71,7 @@ export default function LinkForm({ onSuccess }: LinkFormProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          url,
+          url: url.trim(), // Trim whitespace before sending
           code: code.trim() || undefined,
         }),
       });
@@ -42,6 +86,8 @@ export default function LinkForm({ onSuccess }: LinkFormProps) {
       setSuccess(true);
       setUrl('');
       setCode('');
+      setTouched({ url: false, code: false });
+      setValidationErrors({ url: '', code: '' });
       onSuccess(data.link);
       
       // Clear success message after 3 seconds
@@ -57,36 +103,69 @@ export default function LinkForm({ onSuccess }: LinkFormProps) {
     <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md space-y-4">
       <div>
         <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-1">
-          URL *
+          URL <span className="text-red-500">*</span>
         </label>
         <input
           type="url"
           id="url"
           value={url}
-          onChange={(e) => setUrl(e.target.value)}
+          onChange={(e) => {
+            setUrl(e.target.value);
+            if (touched.url) {
+              setValidationErrors(prev => ({ ...prev, url: validateUrl(e.target.value) }));
+            }
+          }}
+          onBlur={() => {
+            setTouched(prev => ({ ...prev, url: true }));
+            setValidationErrors(prev => ({ ...prev, url: validateUrl(url) }));
+          }}
           placeholder="https://example.com"
           required
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={`w-full px-3 py-2 text-gray-900 bg-white border rounded-md focus:outline-none focus:ring-2 ${
+            touched.url && validationErrors.url
+              ? 'border-red-500 focus:ring-red-500'
+              : 'border-gray-300 focus:ring-blue-500'
+          } disabled:bg-gray-100 disabled:text-gray-500`}
           disabled={loading}
         />
+        {touched.url && validationErrors.url && (
+          <p className="text-xs text-red-600 mt-1">{validationErrors.url}</p>
+        )}
       </div>
 
       <div>
         <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-1">
-          Custom Code (optional, 6-8 alphanumeric)
+          Custom Code <span className="text-gray-500 text-xs">(optional, 6-8 alphanumeric)</span>
         </label>
         <input
           type="text"
           id="code"
           value={code}
-          onChange={(e) => setCode(e.target.value.replace(/[^A-Za-z0-9]/g, ''))}
+          onChange={(e) => {
+            const newValue = e.target.value.replace(/[^A-Za-z0-9]/g, '');
+            setCode(newValue);
+            if (touched.code) {
+              setValidationErrors(prev => ({ ...prev, code: validateCode(newValue) }));
+            }
+          }}
+          onBlur={() => {
+            setTouched(prev => ({ ...prev, code: true }));
+            setValidationErrors(prev => ({ ...prev, code: validateCode(code) }));
+          }}
           placeholder="Leave empty for auto-generated"
           maxLength={8}
           pattern="[A-Za-z0-9]{6,8}"
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={`w-full px-3 py-2 text-gray-900 bg-white border rounded-md focus:outline-none focus:ring-2 ${
+            touched.code && validationErrors.code
+              ? 'border-red-500 focus:ring-red-500'
+              : 'border-gray-300 focus:ring-blue-500'
+          } disabled:bg-gray-100 disabled:text-gray-500`}
           disabled={loading}
         />
-        {code && code.length < 6 && (
+        {touched.code && validationErrors.code && (
+          <p className="text-xs text-red-600 mt-1">{validationErrors.code}</p>
+        )}
+        {code && !validationErrors.code && code.length > 0 && code.length < 6 && (
           <p className="text-xs text-gray-500 mt-1">Code must be at least 6 characters</p>
         )}
       </div>

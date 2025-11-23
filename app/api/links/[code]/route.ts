@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPool, initDatabase } from '@/lib/db';
 
-// Initialize database on first request
 let dbInitialized = false;
 
 async function ensureDbInitialized() {
@@ -11,7 +10,6 @@ async function ensureDbInitialized() {
   }
 }
 
-// GET /api/links/:code - Get stats for a link
 export async function GET(
   request: NextRequest,
   { params }: { params: { code: string } }
@@ -50,7 +48,6 @@ export async function GET(
   } catch (error: any) {
     console.error('Error fetching link:', error);
     
-    // Provide more specific error messages
     if (error.code === 'ENOTFOUND') {
       return NextResponse.json(
         { success: false, error: 'Database connection failed. Please check your database connection string.' },
@@ -65,7 +62,6 @@ export async function GET(
   }
 }
 
-// DELETE /api/links/:code - Delete a link
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { code: string } }
@@ -94,7 +90,6 @@ export async function DELETE(
   } catch (error: any) {
     console.error('Error deleting link:', error);
     
-    // Provide more specific error messages
     if (error.code === 'ENOTFOUND') {
       return NextResponse.json(
         { success: false, error: 'Database connection failed. Please check your database connection string.' },

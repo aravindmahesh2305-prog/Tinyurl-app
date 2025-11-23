@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPool, initDatabase } from '@/lib/db';
 
-// Initialize database on first request
 let dbInitialized = false;
 
 async function ensureDbInitialized() {
@@ -11,7 +10,6 @@ async function ensureDbInitialized() {
   }
 }
 
-// GET /:code - Redirect to original URL
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ code: string }> | { code: string } }
@@ -20,7 +18,6 @@ export async function GET(
     await ensureDbInitialized();
     const pool = getPool();
     
-    // Handle params - Next.js 14 uses object, Next.js 15+ uses Promise
     let code: string;
     if (params instanceof Promise) {
       const resolvedParams = await params;
@@ -36,7 +33,6 @@ export async function GET(
       );
     }
 
-    // First, get the link to verify it exists
     const checkResult = await pool.query(
       `SELECT url FROM links WHERE code = $1 AND deleted = FALSE`,
       [code]
@@ -51,22 +47,13 @@ export async function GET(
 
     const url = checkResult.rows[0].url;
 
-    // Update click stats - use a separate query to ensure it completes
-    // We do this after getting the URL so we can still redirect even if update fails
-    try {
-      const updateResult = await pool.query(
-        `UPDATE links
-         SET clicks = clicks + 1, last_clicked = CURRENT_TIMESTAMP
-         WHERE code = $1 AND deleted = FALSE`,
-        [code]
-      );
-      console.log(`Updated clicks for code: ${code}, rows affected: ${updateResult.rowCount}`);
-    } catch (updateError: any) {
-      // Log the error but still allow redirect
-      console.error('Error updating click count:', updateError);
-    }
+    await pool.query(
+      `UPDATE links
+       SET clicks = clicks + 1, last_clicked = CURRENT_TIMESTAMP
+       WHERE code = $1 AND deleted = FALSE`,
+      [code]
+    );
     
-    // Redirect to the original URL
     return NextResponse.redirect(url, { status: 302 });
   } catch (error: any) {
     console.error('Error redirecting:', error);

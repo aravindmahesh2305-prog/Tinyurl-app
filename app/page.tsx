@@ -55,6 +55,22 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchLinks();
+    
+    // Auto-refresh links every 5 seconds to show updated click counts
+    const interval = setInterval(() => {
+      fetchLinks();
+    }, 5000);
+    
+    // Refresh when page gains focus (user comes back to tab)
+    const handleFocus = () => {
+      fetchLinks();
+    };
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   return (
