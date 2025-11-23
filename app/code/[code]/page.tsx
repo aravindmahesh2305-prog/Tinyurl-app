@@ -42,19 +42,12 @@ export default function StatsPage() {
     if (code) {
       fetchLink(true);
       
-      // Auto-refresh link stats every 3 seconds to show updated click counts
-      const interval = setInterval(() => {
-        fetchLink(false);
-      }, 3000);
-      
-      // Refresh when page gains focus (user comes back to tab)
       const handleFocus = () => {
         fetchLink(false);
       };
       window.addEventListener('focus', handleFocus);
       
       return () => {
-        clearInterval(interval);
         window.removeEventListener('focus', handleFocus);
       };
     }
@@ -82,9 +75,13 @@ export default function StatsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600">Loading link statistics...</p>
+          <svg className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <p className="text-gray-600 font-medium">Loading link statistics...</p>
         </div>
       </div>
     );
@@ -92,13 +89,18 @@ export default function StatsPage() {
 
   if (error || !link) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md text-center max-w-md">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Link Not Found</h1>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-4">
+        <div className="bg-white p-10 rounded-xl shadow-lg border border-gray-100 text-center max-w-md">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Link Not Found</h1>
           <p className="text-gray-600 mb-6">{error || 'The requested link does not exist.'}</p>
           <button
             onClick={() => router.push('/')}
-            className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
+            className="bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2.5 px-6 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg"
           >
             Go to Dashboard
           </button>
@@ -110,20 +112,23 @@ export default function StatsPage() {
   const shortUrl = baseUrl ? `${baseUrl}/${link.code}` : `/${link.code}`;
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4">
       <div className="max-w-4xl mx-auto">
         <header className="mb-8">
           <button
             onClick={() => router.push('/')}
-            className="text-blue-600 hover:text-blue-800 mb-4"
+            className="text-blue-600 hover:text-blue-800 mb-4 flex items-center gap-2 font-medium transition-colors"
           >
-            ← Back to Dashboard
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Dashboard
           </button>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Link Statistics</h1>
-          <p className="text-gray-600">Details for code: <span className="font-mono font-semibold">{link.code}</span></p>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent mb-2">Link Statistics</h1>
+          <p className="text-gray-600">Details for code: <span className="font-mono font-semibold text-gray-900">{link.code}</span></p>
         </header>
 
-        <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
+        <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8 space-y-6">
           <div>
             <h2 className="text-sm font-medium text-gray-500 mb-1">Short Code</h2>
             <div className="flex items-center gap-2">
@@ -201,22 +206,22 @@ export default function StatsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-200">
-            <div>
-              <h2 className="text-sm font-medium text-gray-500 mb-1">Total Clicks</h2>
-              <p className="text-3xl font-bold text-gray-900">{link.clicks}</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-gray-200">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-5 rounded-lg border border-blue-200">
+              <h2 className="text-sm font-semibold text-gray-600 mb-2 uppercase tracking-wide">Total Clicks</h2>
+              <p className="text-4xl font-bold text-blue-700">{link.clicks}</p>
             </div>
-            <div>
-              <h2 className="text-sm font-medium text-gray-500 mb-1">Last Clicked</h2>
-              <p className="text-lg text-gray-900">{formatDate(link.lastClicked)}</p>
+            <div className="bg-gradient-to-br from-green-50 to-green-100 p-5 rounded-lg border border-green-200">
+              <h2 className="text-sm font-semibold text-gray-600 mb-2 uppercase tracking-wide">Last Clicked</h2>
+              <p className="text-lg font-semibold text-gray-900">{formatDate(link.lastClicked)}</p>
             </div>
-            <div>
-              <h2 className="text-sm font-medium text-gray-500 mb-1">Created At</h2>
-              <p className="text-lg text-gray-900">{formatDate(link.createdAt)}</p>
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-5 rounded-lg border border-purple-200">
+              <h2 className="text-sm font-semibold text-gray-600 mb-2 uppercase tracking-wide">Created At</h2>
+              <p className="text-lg font-semibold text-gray-900">{formatDate(link.createdAt)}</p>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-gray-200">
+          <div className="pt-6 border-t border-gray-200">
             <button
               onClick={() => {
                 if (confirm(`Are you sure you want to delete link "${link.code}"?`)) {
@@ -225,8 +230,11 @@ export default function StatsPage() {
                     .catch(() => alert('Failed to delete link'));
                 }
               }}
-              className="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700"
+              className="bg-gradient-to-r from-red-600 to-red-700 text-white py-2.5 px-6 rounded-lg font-semibold hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2"
             >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
               Delete Link
             </button>
           </div>
